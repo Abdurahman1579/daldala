@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DaldalaHub</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- ============ TOAST NOTIFICATIONS CONTAINER (FEATURE 4) ============ -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ============ LOGIN PAGE ============ -->
+    <div class="auth-page" id="page-login">
+      <div class="auth-lang">
+        <div class="lang-switcher">
+          <button class="lang-btn" data-lang="en">EN</button>
+          <button class="lang-btn" data-lang="am">አማ</button>
+          <button class="lang-btn" data-lang="om-ET">OM</button>
+        </div>
+      </div>
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-logo" data-i18n="app_name">DaldalaHub</div>
+          <p data-i18n="tagline">Manage your business easily</p>
+        </div>
+        <div id="loginAlert" class="alert"></div>
+        <form id="loginForm">
+          <div class="form-group">
+            <label data-i18n="email">Email</label>
+            <input
+              type="email"
+              id="loginEmail"
+              class="form-control"
+              autocomplete="email"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label data-i18n="password">Password</label>
+            <input
+              type="password"
+              id="loginPassword"
+              class="form-control"
+              autocomplete="current-password"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            class="btn btn-primary btn-block"
+            data-i18n="login"
+          >
+            Login
+          </button>
+        </form>
+        <p class="auth-switch">
+          <span data-i18n="no_account">Don't have an account?</span>
+          <a href="#" data-nav="register" data-i18n="register">Register</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- ============ REGISTER PAGE ============ -->
+    <div class="auth-page" id="page-register" style="display: none">
+      <div class="auth-lang">
+        <div class="lang-switcher">
+          <button class="lang-btn" data-lang="en">EN</button>
+          <button class="lang-btn" data-lang="am">አማ</button>
+          <button class="lang-btn" data-lang="om-ET">OM</button>
+        </div>
+      </div>
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-logo" data-i18n="app_name">DaldalaHub</div>
+          <p data-i18n="tagline">Manage your business easily</p>
+        </div>
+        <div id="registerAlert" class="alert"></div>
+        <form id="registerForm">
+          <div class="form-group">
+            <label data-i18n="name">Full Name</label>
+            <input
+              type="text"
+              id="regName"
+              class="form-control"
+              autocomplete="name"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label data-i18n="shop_name">Shop Name</label>
+            <input
+              type="text"
+              id="regShop"
+              class="form-control"
+              autocomplete="organization"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label data-i18n="email">Email</label>
+            <input
+              type="email"
+              id="regEmail"
+              class="form-control"
+              autocomplete="email"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label data-i18n="password">Password</label>
+            <input
+              type="password"
+              id="regPassword"
+              class="form-control"
+              autocomplete="new-password"
+              required
+              minlength="6"
+            />
+          </div>
+          <button
+            type="submit"
+            class="btn btn-primary btn-block"
+            data-i18n="register"
+          >
+            Register
+          </button>
+        </form>
+        <p class="auth-switch">
+          <span data-i18n="already_have_account">Already have an account?</span>
+          <a href="#" data-nav="login" data-i18n="login">Login</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- ============ CONFIRM EMAIL PAGE ============ -->
+    <div class="auth-page" id="page-confirm" style="display: none">
+      <div class="auth-lang">
+        <div class="lang-switcher">
+          <button class="lang-btn" data-lang="en">EN</button>
+          <button class="lang-btn" data-lang="am">አማ</button>
+          <button class="lang-btn" data-lang="om-ET">OM</button>
+        </div>
+      </div>
+      <div class="auth-card" style="text-align: center">
+        <div class="auth-header">
+          <div style="font-size: 64px; margin-bottom: 16px">📧</div>
+          <div class="auth-logo" data-i18n="app_name">DaldalaHub</div>
+        </div>
+        <h2
+          style="font-size: 22px; font-weight: 800; margin-bottom: 12px"
+          data-i18n="confirm_email_title"
+        >
+          Check your email
+        </h2>
+        <p
+          style="color: var(--text-light); font-size: 14px; margin-bottom: 8px"
+          data-i18n="confirm_email_desc"
+        >
+          We sent a confirmation link to
+        </p>
+        <p
+          style="font-weight: 700; color: var(--primary); margin-bottom: 24px"
+          id="confirmEmailAddress"
+        ></p>
+        <div
+          class="alert alert-warning show"
+          style="text-align: left; font-size: 13px"
+        >
+          <strong data-i18n="confirm_email_note">📌 Important:</strong>
+          <span data-i18n="confirm_email_note_text"
+            >Click the link in the email to activate your account.</span
+          >
+        </div>
+        <button
+          class="btn btn-primary btn-block"
+          id="resendBtn"
+          style="margin-top: 8px"
+        >
+          <span data-i18n="resend_email">Resend confirmation email</span>
+        </button>
+        <button
+          class="btn btn-secondary btn-block"
+          id="backToLoginBtn"
+          style="margin-top: 8px"
+        >
+          <span data-i18n="back_to_login">Back to login</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ============ APP LAYOUT ============ -->
+    <div id="page-app" style="display: none">
+      <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+
+      <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+          <div class="sidebar-header">
+            <h1 data-i18n="app_name">DaldalaHub</h1>
+            <p id="shopName"></p>
+          </div>
+          <nav class="sidebar-nav">
+            <a href="#" class="nav-link" data-nav="dashboard">
+              <span class="icon">📊</span>
+              <span data-i18n="dashboard">Dashboard</span>
+            </a>
+            <a href="#" class="nav-link" data-nav="products">
+              <span class="icon">📦</span>
+              <span data-i18n="products">Products</span>
+            </a>
+            <a href="#" class="nav-link" data-nav="orders">
+              <span class="icon">🛒</span>
+              <span data-i18n="orders">Orders</span>
+            </a>
+            <!-- 👇 FEATURE 5: Staff -->
+            <a href="#" class="nav-link" data-nav="staff" id="staffNavLink">
+              <span class="icon">👥</span>
+              <span data-i18n="staff">Staff</span>
+            </a>
+          </nav>
+          <div class="sidebar-footer">
+            <div class="user-info">
+              <div class="user-avatar" id="userAvatar">U</div>
+              <div class="user-details">
+                <p id="userName">User</p>
+                <p
+                  id="userEmail"
+                  style="font-size: 12px; color: var(--text-light)"
+                ></p>
+              </div>
+            </div>
+            <button class="btn-logout" id="logoutBtn" data-i18n="logout">
+              Logout
+            </button>
+          </div>
+        </aside>
+
+        <main class="main-content">
+          <!-- ===== DASHBOARD VIEW ===== -->
+          <div class="view" id="view-dashboard">
+            <div class="topbar">
+              <div>
+                <h1 class="page-title" data-i18n="dashboard">Dashboard</h1>
+                <p class="page-subtitle" data-i18n="welcome">Welcome</p>
+              </div>
+              <div class="lang-switcher">
+                <button class="lang-btn" data-lang="en">EN</button>
+                <button class="lang-btn" data-lang="am">አማ</button>
+                <button class="lang-btn" data-lang="om-ET">OM</button>
+              </div>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-card green">
+                <div class="stat-icon">💰</div>
+                <div class="stat-label" data-i18n="total_revenue">
+                  Total Revenue
+                </div>
+                <div class="stat-value" id="totalRevenue">ETB 0</div>
+              </div>
+              <div class="stat-card blue">
+                <div class="stat-icon">🛒</div>
+                <div class="stat-label" data-i18n="total_orders">
+                  Total Orders
+                </div>
+                <div class="stat-value" id="totalOrders">0</div>
+              </div>
+              <div class="stat-card purple">
+                <div class="stat-icon">📦</div>
+                <div class="stat-label" data-i18n="total_products">
+                  Total Products
+                </div>
+                <div class="stat-value" id="totalProducts">0</div>
+              </div>
+              <div class="stat-card orange">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-label" data-i18n="pending_orders">
+                  Pending Orders
+                </div>
+                <div class="stat-value" id="pendingOrders">0</div>
+              </div>
+            </div>
+
+            <div id="lowStockWarning" class="alert alert-warning"></div>
+
+            <div class="chart-container">
+              <h2 data-i18n="sales_chart">Monthly Sales</h2>
+              <div style="position: relative; height: 300px">
+                <canvas id="salesChartJs"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-container" style="margin-top: 24px">
+              <h2 data-i18n="order_status_chart">Order Status Distribution</h2>
+              <div style="position: relative; height: 300px">
+                <canvas id="statusChartJs"></canvas>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top: 24px">
+              <h2
+                style="margin-bottom: 16px; font-size: 18px"
+                data-i18n="orders"
+              >
+                Orders
+              </h2>
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th data-i18n="customer_name">Customer</th>
+                      <th data-i18n="price">Price</th>
+                      <th data-i18n="status">Status</th>
+                      <th data-i18n="date">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentOrdersBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== STAFF VIEW (FEATURE 5) ===== -->
+          <div class="view" id="view-staff" style="display: none">
+            <div class="topbar">
+              <h1 class="page-title" data-i18n="staff">Staff</h1>
+              <div
+                style="
+                  display: flex;
+                  gap: 12px;
+                  align-items: center;
+                  flex-wrap: wrap;
+                "
+              >
+                <div class="lang-switcher">
+                  <button class="lang-btn" data-lang="en">EN</button>
+                  <button class="lang-btn" data-lang="am">አማ</button>
+                  <button class="lang-btn" data-lang="om-ET">OM</button>
+                </div>
+                <button class="btn btn-primary" id="addStaffBtn">
+                  <span>＋</span>
+                  <span data-i18n="add_staff">Add Staff</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th data-i18n="staff_email">Email</th>
+                    <th data-i18n="role">Role</th>
+                    <th data-i18n="status">Status</th>
+                    <th data-i18n="date">Date</th>
+                    <th data-i18n="actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="staffBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ===== PRODUCTS VIEW ===== -->
+          <div class="view" id="view-products" style="display: none">
+            <div class="topbar">
+              <h1 class="page-title" data-i18n="products">Products</h1>
+              <div
+                style="
+                  display: flex;
+                  gap: 12px;
+                  align-items: center;
+                  flex-wrap: wrap;
+                "
+              >
+                <div class="lang-switcher">
+                  <button class="lang-btn" data-lang="en">EN</button>
+                  <button class="lang-btn" data-lang="am">አማ</button>
+                  <button class="lang-btn" data-lang="om-ET">OM</button>
+                </div>
+                <button class="btn btn-primary" id="addProductBtn">
+                  <span>＋</span>
+                  <span data-i18n="add_product">Add Product</span>
+                </button>
+              </div>
+            </div>
+            <div class="products-grid" id="productsGrid"></div>
+          </div>
+
+          <!-- ===== ORDERS VIEW ===== -->
+          <div class="view" id="view-orders" style="display: none">
+            <div class="topbar">
+              <h1 class="page-title" data-i18n="orders">Orders</h1>
+              <div
+                style="
+                  display: flex;
+                  gap: 12px;
+                  align-items: center;
+                  flex-wrap: wrap;
+                "
+              >
+                <div class="lang-switcher">
+                  <button class="lang-btn" data-lang="en">EN</button>
+                  <button class="lang-btn" data-lang="am">አማ</button>
+                  <button class="lang-btn" data-lang="om-ET">OM</button>
+                </div>
+                <button class="btn btn-primary" id="addOrderBtn">
+                  <span>＋</span> <span data-i18n="add_order">New Order</span>
+                </button>
+              </div>
+            </div>
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th data-i18n="customer_name">Customer</th>
+                    <th data-i18n="products">Products</th>
+                    <th data-i18n="price">Price</th>
+                    <th data-i18n="status">Status</th>
+                    <th data-i18n="date">Date</th>
+                    <th data-i18n="actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- ============ PRODUCT MODAL ============ -->
+    <div class="modal-overlay" id="productModal">
+      <div class="modal">
+        <h2 id="productModalTitle" data-i18n="add_product">Add Product</h2>
+        <form id="productForm">
+          <div class="form-group">
+            <label data-i18n="name">Name</label>
+            <input type="text" id="pName" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label data-i18n="category">Category</label>
+            <input type="text" id="pCategory" class="form-control" />
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+            <div class="form-group">
+              <label data-i18n="price">Price</label>
+              <input
+                type="number"
+                id="pPrice"
+                class="form-control"
+                required
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div class="form-group">
+              <label data-i18n="cost">Cost</label>
+              <input
+                type="number"
+                id="pCost"
+                class="form-control"
+                min="0"
+                step="0.01"
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="stock">Stock</label>
+            <input
+              type="number"
+              id="pStock"
+              class="form-control"
+              required
+              min="0"
+            />
+          </div>
+          <div class="form-group">
+            <label data-i18n="description">Description</label>
+            <textarea id="pDescription" class="form-control"></textarea>
+          </div>
+          <!-- ============ IMAGE UPLOAD (FEATURE 1) ============ -->
+          <div class="form-group">
+            <label data-i18n="image">Image</label>
+            <input
+              type="file"
+              id="pImage"
+              class="form-control"
+              accept="image/*"
+            />
+            <small
+              style="
+                color: var(--text-light);
+                font-size: 12px;
+                display: block;
+                margin-top: 4px;
+              "
+              data-i18n="image_hint"
+            >
+              Max 5MB. JPG, PNG, WEBP
+            </small>
+            <div id="imagePreview" style="margin-top: 12px; display: none">
+              <img
+                id="imagePreviewImg"
+                style="
+                  max-width: 100%;
+                  border-radius: 8px;
+                  max-height: 200px;
+                  object-fit: cover;
+                "
+              />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="cancelProductBtn"
+              data-i18n="cancel"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" data-i18n="save">
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ============ ORDER MODAL ============ -->
+    <div class="modal-overlay" id="orderModal">
+      <div class="modal" style="max-width: 600px">
+        <h2 data-i18n="add_order">New Order</h2>
+        <form id="orderForm">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+            <div class="form-group">
+              <label data-i18n="customer_name">Customer Name</label>
+              <input
+                type="text"
+                id="oCustomerName"
+                class="form-control"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label data-i18n="customer_phone">Customer Phone</label>
+              <input type="text" id="oCustomerPhone" class="form-control" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="products">Products</label>
+            <div id="orderItems"></div>
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm"
+              id="addItemRowBtn"
+              style="margin-top: 8px"
+            >
+              ＋ Add Item
+            </button>
+          </div>
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="cancelOrderBtn"
+              data-i18n="cancel"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" data-i18n="save">
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ============ STAFF MODAL (FEATURE 5) ============ -->
+    <div class="modal-overlay" id="staffModal">
+      <div class="modal">
+        <h2 id="staffModalTitle" data-i18n="add_staff">Add Staff</h2>
+        <form id="staffForm">
+          <div class="form-group">
+            <label data-i18n="staff_email">Email</label>
+            <input
+              type="email"
+              id="staffEmail"
+              class="form-control"
+              placeholder="staff@example.com"
+              autocomplete="email"
+              required
+            />
+            <small
+              style="
+                color: var(--text-light);
+                font-size: 12px;
+                display: block;
+                margin-top: 4px;
+              "
+              data-i18n="staff_email_hint"
+            >
+              Staff akkaawuntii duraan uumame qofa
+            </small>
+          </div>
+          <div class="form-group">
+            <label data-i18n="role">Role</label>
+            <select id="staffRole" class="form-control" required>
+              <option value="viewer" data-i18n="role_viewer">Viewer</option>
+              <option value="cashier" data-i18n="role_cashier">Cashier</option>
+              <option value="manager" data-i18n="role_manager">Manager</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="cancelStaffBtn"
+              data-i18n="cancel"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" data-i18n="save">
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- ============ jsPDF + AutoTable (FEATURE 2) ============ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <!-- ============ Chart.js (FEATURE 3) ============ -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
