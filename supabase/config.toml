@@ -1,0 +1,22 @@
+
+[functions.chapa-init]
+enabled = true
+verify_jwt = false
+import_map = "./functions/chapa-init/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/chapa-init/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/chapa-init/*.html" ]
+
+[functions.chapa-verify]
+enabled = true
+verify_jwt = false
+import_map = "./functions/chapa-verify/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/chapa-verify/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/chapa-verify/*.html" ]

@@ -216,7 +216,6 @@
               <span class="icon">🛒</span>
               <span data-i18n="orders">Orders</span>
             </a>
-            <!-- 👇 FEATURE 5: Staff -->
             <a href="#" class="nav-link" data-nav="staff" id="staffNavLink">
               <span class="icon">👥</span>
               <span data-i18n="staff">Staff</span>
@@ -324,7 +323,7 @@
             </div>
           </div>
 
-          <!-- ===== STAFF VIEW (FEATURE 5) ===== -->
+          <!-- ===== STAFF VIEW ===== -->
           <div class="view" id="view-staff" style="display: none">
             <div class="topbar">
               <h1 class="page-title" data-i18n="staff">Staff</h1>
@@ -482,7 +481,6 @@
             <label data-i18n="description">Description</label>
             <textarea id="pDescription" class="form-control"></textarea>
           </div>
-          <!-- ============ IMAGE UPLOAD (FEATURE 1) ============ -->
           <div class="form-group">
             <label data-i18n="image">Image</label>
             <input
@@ -580,7 +578,7 @@
       </div>
     </div>
 
-    <!-- ============ STAFF MODAL (FEATURE 5) ============ -->
+    <!-- ============ STAFF MODAL ============ -->
     <div class="modal-overlay" id="staffModal">
       <div class="modal">
         <h2 id="staffModalTitle" data-i18n="add_staff">Add Staff</h2>
@@ -629,6 +627,42 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- ============ PAYMENT CONFIRM MODAL (FEATURE 6) ============ -->
+    <div class="modal-overlay" id="paymentModal">
+      <div class="modal" style="text-align: center">
+        <div style="font-size: 64px; margin-bottom: 16px">💳</div>
+        <h2 id="paymentModalTitle" data-i18n="confirm_payment">
+          Confirm Payment
+        </h2>
+        <p
+          style="color: var(--text-light); margin-bottom: 24px"
+          data-i18n="payment_redirect_msg"
+        >
+          You will be redirected to Chapa payment gateway
+        </p>
+        <div style="display: flex; gap: 12px">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            id="cancelPaymentBtn"
+            data-i18n="cancel"
+            style="flex: 1; justify-content: center"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            id="confirmPaymentBtn"
+            data-i18n="pay_now"
+            style="flex: 1; justify-content: center"
+          >
+            Pay Now
+          </button>
+        </div>
       </div>
     </div>
 

@@ -5,13 +5,13 @@
 //            dh_orders, dh_order_items, dh_staff)
 //  Storage: dh-product-images
 //  Features: Image Upload + PDF Invoice + Chart.js + Notifications
-//            + Multi-Staff
+//            + Multi-Staff + Payment (Chapa)
 // ============================================================
 
 // ---------- 1. SUPABASE CONFIG ----------
 // ⚠️ KAN JIJJIIRI: URL fi KEY kee galchi
 const SUPABASE_URL = 'https://yjkgipivctdhezwvfwjx.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_wgNooZL5_9oxf_0Mg2RmGw_m78N-O5m';  // ⚠️ eyJhbGci... bifa qabu galchi
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlqa2dpcGl2Y3RkaGV6d3Zmd2p4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MTYxODYsImV4cCI6MjEwMDk5MjE4Nn0.MaxngdvJ-SHrQ_qIok9_jU2-kxaVt_-OKOT03XKq_Kk';  // ⚠️ eyJhbGci... bifa qabu galchi
 
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -28,16 +28,14 @@ const state = {
   translations: {},
   currentPage: 'login',
   pendingEmail: null,
-  userRole: 'owner'  // 'owner', 'manager', 'cashier', 'viewer'
+  userRole: 'owner',
+  pendingPaymentOrderId: null
 };
 
 const SUPPORTED_LANGS = ['en', 'am', 'om-ET'];
 
-// Chart instances (re-render irratti destroy godhuuf)
 let salesChartInstance = null;
 let statusChartInstance = null;
-
-// Realtime channel (logout irratti remove godhuuf)
 let realtimeChannel = null;
 
 // ---------- 3. I18N ----------
@@ -302,7 +300,6 @@ async function initApp() {
     state.userRole = 'owner';
   }
 
-  // Sidebar: Staff nav link — owner/manager qofa
   const staffNavLink = document.getElementById('staffNavLink');
   if (staffNavLink) {
     if (state.userRole === 'owner' || state.userRole === 'manager') {
@@ -326,6 +323,9 @@ async function initApp() {
   setupRealtimeSubscription(user.id);
 
   showPage('dashboard');
+
+  // Payment callback yeroo Chapa irraa deebi'u
+  setTimeout(() => handlePaymentCallback(), 500);
 }
 
 // ---------- 6.1 REALTIME SUBSCRIPTION (FEATURE 4) ----------
@@ -859,6 +859,8 @@ function renderOrders() {
       .map(i => `${escapeHtml(i.product_name)} ×${i.quantity}`)
       .join(', ') || '—';
 
+    const isPaid = o.payment_status === 'paid';
+
     return `
       <tr>
         <td>
@@ -878,6 +880,14 @@ function renderOrders() {
           <button class="btn btn-secondary btn-sm" style="margin-top:6px;width:100%" onclick="downloadInvoice('${o.id}')">
             📄 ${t('pdf')}
           </button>
+          ${isPaid
+            ? `<span class="badge badge-success" style="margin-top:6px;width:100%;display:inline-block;text-align:center;padding:8px 10px">
+                ✅ ${t('paid')}
+              </span>`
+            : `<button class="btn btn-primary btn-sm" style="margin-top:6px;width:100%" onclick="openPaymentModal('${o.id}')">
+                💳 ${t('pay_now')}
+              </button>`
+          }
         </td>
       </tr>`;
   }).join('');
@@ -938,7 +948,8 @@ document.getElementById('orderForm')?.addEventListener('submit', async (e) => {
       customer_name: customerName,
       customer_phone: customerPhone,
       total,
-      status: 'pending'
+      status: 'pending',
+      payment_status: 'unpaid'
     })
     .select()
     .single();
@@ -1358,6 +1369,130 @@ async function deleteStaff(staffId) {
   } catch (err) {
     console.error(err);
     showToast('Error', err.message, 'error');
+  }
+}
+
+// ---------- 9.4 PAYMENT (FEATURE 6 — CHAPA) ----------
+function openPaymentModal(orderId) {
+  const order = state.orders.find(o => o.id === orderId);
+  if (!order) {
+    showToast('Error', 'Order not found', 'error');
+    return;
+  }
+
+  if (order.payment_status === 'paid') {
+    showToast('Info', 'Order already paid', 'info');
+    return;
+  }
+
+  state.pendingPaymentOrderId = orderId;
+  document.getElementById('paymentModal').classList.add('active');
+}
+
+document.getElementById('cancelPaymentBtn')?.addEventListener('click', () => {
+  state.pendingPaymentOrderId = null;
+  document.getElementById('paymentModal').classList.remove('active');
+});
+
+document.getElementById('paymentModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'paymentModal') {
+    state.pendingPaymentOrderId = null;
+    e.target.classList.remove('active');
+  }
+});
+
+document.getElementById('confirmPaymentBtn')?.addEventListener('click', async () => {
+  const orderId = state.pendingPaymentOrderId;
+  if (!orderId) return;
+
+  document.getElementById('paymentModal').classList.remove('active');
+
+  await payOrder(orderId);
+});
+
+async function payOrder(orderId) {
+  if (!state.user) return;
+
+  const order = state.orders.find(o => o.id === orderId);
+  if (!order) {
+    showToast('Error', 'Order not found', 'error');
+    return;
+  }
+
+  if (order.payment_status === 'paid') {
+    showToast('Info', 'Order already paid', 'info');
+    return;
+  }
+
+  try {
+    showToast('💳 ' + t('payment_processing'), t('payment_processing'), 'info', 3000);
+
+    // Edge Function call — chapa-init
+    const { data, error } = await db.functions.invoke('chapa-init', {
+      body: {
+        amount: Number(order.total),
+        email: state.user.email,
+        firstName: (state.profile?.name || 'Customer').split(' ')[0],
+        lastName: (state.profile?.name || 'User').split(' ').slice(1).join(' ') || 'User',
+        phone: order.customer_phone || '',
+        orderId: order.id
+      }
+    });
+
+    if (error) throw error;
+    if (!data || !data.checkout_url) throw new Error('Invalid response from payment server');
+
+    localStorage.setItem('chapa_tx_ref', data.tx_ref);
+    localStorage.setItem('chapa_order_id', order.id);
+
+    window.location.href = data.checkout_url;
+
+  } catch (err) {
+    console.error('Payment error:', err);
+    showToast('Payment Error', err.message || 'Failed to initialize payment', 'error', 5000);
+  }
+}
+
+// ---------- 9.5 PAYMENT CALLBACK ----------
+async function handlePaymentCallback() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const payment = urlParams.get('payment');
+  const orderId = urlParams.get('order');
+
+  if (payment === 'success' && orderId) {
+    const txRef = localStorage.getItem('chapa_tx_ref');
+
+    if (txRef) {
+      try {
+        showToast('✅ ' + t('verifying'), t('verifying'), 'info', 3000);
+
+        const { data, error } = await db.functions.invoke('chapa-verify', {
+          body: { tx_ref: txRef, orderId: orderId }
+        });
+
+        if (error) throw error;
+
+        if (data && data.paid) {
+          showToast('✅ ' + t('payment_success'), 'Order paid successfully!', 'success', 5000);
+        } else {
+          showToast('⚠️ ' + t('payment_failed'), 'Payment not confirmed', 'warning', 5000);
+        }
+
+        localStorage.removeItem('chapa_tx_ref');
+        localStorage.removeItem('chapa_order_id');
+
+        if (state.currentPage === 'orders') {
+          await loadOrders();
+        } else if (state.currentPage === 'dashboard') {
+          await loadDashboard();
+        }
+      } catch (err) {
+        console.error('Verify error:', err);
+        showToast('Verify Error', err.message, 'error', 5000);
+      }
+    }
+
+    window.history.replaceState({}, document.title, window.location.pathname);
   }
 }
 
