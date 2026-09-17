@@ -5,13 +5,13 @@
 //            dh_orders, dh_order_items, dh_staff)
 //  Storage: dh-product-images
 //  Features: Image Upload + PDF Invoice + Chart.js + Notifications
-//            + Multi-Staff + Payment (Chapa)
+//            + Multi-Staff + Payment (Chapa) + Dark Mode
 // ============================================================
 
 // ---------- 1. SUPABASE CONFIG ----------
 // ⚠️ KAN JIJJIIRI: URL fi KEY kee galchi
 const SUPABASE_URL = 'https://yjkgipivctdhezwvfwjx.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlqa2dpcGl2Y3RkaGV6d3Zmd2p4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MTYxODYsImV4cCI6MjEwMDk5MjE4Nn0.MaxngdvJ-SHrQ_qIok9_jU2-kxaVt_-OKOT03XKq_Kk';  // ⚠️ eyJhbGci... bifa qabu galchi
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlqa2dpcGl2Y3RkaGV6d3Zmd2p4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MTYxODYsImV4cCI6MjEwMDk5MjE4Nn0.MaxngdvJ-SHrQ_qIok9_jU2-kxaVt_-OKOT03XKq_Kk';
 
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -458,6 +458,11 @@ function renderSalesChart(orders) {
 
   const ctx = canvas.getContext('2d');
 
+  // Theme colors
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor = isDark ? '#334155' : '#e2e8f0';
+  const tickColor = isDark ? '#94a3b8' : '#64748b';
+
   const gradient = ctx.createLinearGradient(0, 0, 0, 300);
   gradient.addColorStop(0, 'rgba(99, 102, 241, 0.9)');
   gradient.addColorStop(1, 'rgba(129, 140, 248, 0.4)');
@@ -499,9 +504,9 @@ function renderSalesChart(orders) {
       scales: {
         y: {
           beginAtZero: true,
-          grid: { color: '#e2e8f0', drawBorder: false },
+          grid: { color: gridColor, drawBorder: false },
           ticks: {
-            color: '#64748b',
+            color: tickColor,
             font: { size: 11, weight: '600' },
             callback: (value) => {
               if (value >= 1000) return `ETB ${(value / 1000).toFixed(0)}k`;
@@ -512,7 +517,7 @@ function renderSalesChart(orders) {
         x: {
           grid: { display: false },
           ticks: {
-            color: '#64748b',
+            color: tickColor,
             font: { size: 12, weight: '600' }
           }
         }
@@ -547,6 +552,10 @@ function renderStatusChart(orders) {
 
   const ctx = canvas.getContext('2d');
 
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const textColor = isDark ? '#f1f5f9' : '#1e293b';
+  const borderColor = isDark ? '#1e293b' : '#fff';
+
   statusChartInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
@@ -561,7 +570,7 @@ function renderStatusChart(orders) {
           '#ef4444'
         ],
         borderWidth: 3,
-        borderColor: '#fff',
+        borderColor: borderColor,
         hoverOffset: 12
       }]
     },
@@ -575,7 +584,7 @@ function renderStatusChart(orders) {
           labels: {
             padding: 16,
             font: { size: 13, weight: '600' },
-            color: '#1e293b',
+            color: textColor,
             usePointStyle: true,
             pointStyle: 'circle'
           }
@@ -1496,6 +1505,56 @@ async function handlePaymentCallback() {
   }
 }
 
+// ---------- 9.6 THEME TOGGLE (DARK MODE) ----------
+function initTheme() {
+  // Check localStorage
+  const savedTheme = localStorage.getItem('theme');
+
+  // Yoo saved theme jiraate → fayyadami
+  if (savedTheme) {
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+  } else {
+    // Ykn — system preference check
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = prefersDark ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    updateThemeIcon(theme);
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  updateThemeIcon(next);
+
+  // Charts re-render — theme colors jijjiiruuf
+  if (state.user) {
+    if (state.currentPage === 'dashboard') {
+      loadDashboard();
+    }
+  }
+}
+
+function updateThemeIcon(theme) {
+  const btn = document.getElementById('themeToggle');
+  if (!btn) return;
+
+  if (theme === 'dark') {
+    btn.textContent = '☀️'; // Sun — light mode'f
+    btn.title = 'Switch to light mode';
+  } else {
+    btn.textContent = '🌙'; // Moon — dark mode'f
+    btn.title = 'Switch to dark mode';
+  }
+}
+
+// Theme toggle listener
+document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+
 // ---------- 10. HELPERS ----------
 function escapeHtml(text) {
   const div = document.createElement('div');
@@ -1515,6 +1574,7 @@ function getStatusClass(status) {
 
 // ---------- 11. BOOT ----------
 document.addEventListener('DOMContentLoaded', async () => {
+  initTheme();
   await loadTranslations(state.currentLang);
 
   db.auth.onAuthStateChange((event, session) => {

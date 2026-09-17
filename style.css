@@ -1,7 +1,7 @@
 /* ============================================================
    DaldalaHub — Full Stylesheet
    Features: Image Upload + PDF Invoice + Chart.js + Notifications
-             + Multi-Staff
+             + Multi-Staff + Payment + SEO + Dark Mode
    ============================================================ */
 
 /* ============ RESET & VARIABLES ============ */
@@ -19,6 +19,7 @@
   --danger: #ef4444;
   --warning: #f59e0b;
   --info: #3b82f6;
+
   --bg: #f8fafc;
   --card: #ffffff;
   --text: #1e293b;
@@ -26,9 +27,21 @@
   --border: #e2e8f0;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1);
+
   --radius: 12px;
   --radius-lg: 16px;
   --transition: all 0.25s ease;
+}
+
+/* ============ DARK MODE ============ */
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --text: #f1f5f9;
+  --text-light: #94a3b8;
+  --border: #334155;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 body {
@@ -37,6 +50,42 @@ body {
   color: var(--text);
   line-height: 1.6;
   min-height: 100vh;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ============ THEME TOGGLE — BOTTOM RIGHT ============ */
+.theme-toggle {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  left: auto;
+  top: auto;
+  z-index: 9999;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  transition: var(--transition);
+  padding: 0;
+  font-family: inherit;
+}
+
+.theme-toggle:hover {
+  background: var(--primary);
+  color: #fff;
+  transform: scale(1.1) rotate(15deg);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
 }
 
 /* ============ AUTH PAGES ============ */
@@ -49,6 +98,10 @@ body {
   padding: 20px;
   position: relative;
   overflow: hidden;
+}
+
+[data-theme="dark"] .auth-page {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
 }
 
 .auth-page::before {
@@ -90,6 +143,12 @@ body {
   position: relative;
   z-index: 1;
   animation: slideUp 0.4s ease;
+  transition: background 0.3s ease;
+}
+
+[data-theme="dark"] .auth-card {
+  background: var(--card);
+  border: 1px solid var(--border);
 }
 
 @keyframes slideUp {
@@ -155,6 +214,7 @@ body {
   left: 0;
   top: 0;
   z-index: 100;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .sidebar-header {
@@ -267,6 +327,10 @@ body {
   border-color: var(--danger);
 }
 
+[data-theme="dark"] .btn-logout:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
 .main-content {
   flex: 1;
   margin-left: 260px;
@@ -335,6 +399,7 @@ body {
   padding: 24px;
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .stats-grid {
@@ -470,7 +535,7 @@ body {
   transform: translateY(-2px);
 }
 
-/* ============ IMAGE (FEATURE 1) ============ */
+/* ============ IMAGE ============ */
 .product-card img {
   display: block;
   width: 100%;
@@ -595,6 +660,7 @@ input[type="file"].form-control::file-selector-button:hover {
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
   overflow: hidden;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .table {
@@ -657,6 +723,7 @@ input[type="file"].form-control::file-selector-button:hover {
   max-height: 90vh;
   overflow-y: auto;
   animation: modalIn 0.25s ease;
+  transition: background 0.3s ease;
 }
 
 @keyframes modalIn {
@@ -698,6 +765,11 @@ input[type="file"].form-control::file-selector-button:hover {
   font-family: inherit;
   transition: var(--transition);
   background: var(--card);
+  color: var(--text);
+}
+
+[data-theme="dark"] .form-control {
+  background: var(--bg);
   color: var(--text);
 }
 
@@ -756,6 +828,21 @@ textarea.form-control {
   margin-bottom: 20px;
 }
 
+[data-theme="dark"] .alert-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .alert-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .alert-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fcd34d;
+}
+
 /* ============ EMPTY STATE ============ */
 .empty-state {
   text-align: center;
@@ -784,9 +871,10 @@ textarea.form-control {
   font-size: 20px;
   cursor: pointer;
   box-shadow: var(--shadow);
+  color: var(--text);
 }
 
-/* ============ CHART.JS (FEATURE 3) ============ */
+/* ============ CHART.JS ============ */
 .chart-container {
   background: var(--card);
   padding: 24px;
@@ -794,6 +882,7 @@ textarea.form-control {
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
   margin-top: 24px;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .chart-container h2 {
@@ -807,7 +896,7 @@ textarea.form-control {
   max-width: 100%;
 }
 
-/* ============ TOAST NOTIFICATIONS (FEATURE 4) ============ */
+/* ============ TOAST NOTIFICATIONS ============ */
 .toast-container {
   position: fixed;
   top: 20px;
@@ -927,7 +1016,7 @@ textarea.form-control {
   animation: toastOut 0.3s ease forwards;
 }
 
-/* ============ STAFF PAGE (FEATURE 5) ============ */
+/* ============ STAFF PAGE ============ */
 .role-badge {
   display: inline-block;
   padding: 4px 12px;
@@ -953,6 +1042,21 @@ textarea.form-control {
   color: #475569;
 }
 
+[data-theme="dark"] .role-badge.role-manager {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .role-badge.role-cashier {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
+[data-theme="dark"] .role-badge.role-viewer {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+
 .staff-actions {
   display: flex;
   gap: 6px;
@@ -964,7 +1068,6 @@ textarea.form-control {
   font-size: 12px;
 }
 
-/* Status badges (staff) */
 .status-badge {
   display: inline-block;
   padding: 4px 10px;
@@ -987,6 +1090,21 @@ textarea.form-control {
 .status-badge.status-revoked {
   background: #fee2e2;
   color: #991b1b;
+}
+
+[data-theme="dark"] .status-badge.status-active {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .status-badge.status-pending {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
+[data-theme="dark"] .status-badge.status-revoked {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
 }
 
 /* ============ RESPONSIVE ============ */
@@ -1024,6 +1142,17 @@ textarea.form-control {
 
   .auth-card {
     padding: 28px 22px;
+  }
+
+  /* Theme toggle — mobile */
+  .theme-toggle {
+    bottom: 20px;
+    right: 20px;
+    left: auto;
+    top: auto;
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
   }
 }
 
