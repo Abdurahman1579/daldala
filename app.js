@@ -9,7 +9,6 @@
 // ============================================================
 
 // ---------- 1. SUPABASE CONFIG ----------
-// ⚠️ KAN JIJJIIRI: URL fi KEY kee galchi
 const SUPABASE_URL = 'https://yjkgipivctdhezwvfwjx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlqa2dpcGl2Y3RkaGV6d3Zmd2p4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MTYxODYsImV4cCI6MjEwMDk5MjE4Nn0.MaxngdvJ-SHrQ_qIok9_jU2-kxaVt_-OKOT03XKq_Kk';
 
@@ -113,7 +112,21 @@ function showPage(page) {
 }
 
 function showView(view) {
-  document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+  // Permission guard — staff page (owner/manager qofa)
+  if (
+    view === 'staff' &&
+    state.userRole !== 'owner' &&
+    state.userRole !== 'manager'
+  ) {
+    showToast(
+      'Permission Denied',
+      'Staff page ilaaluuf hayyama hin qabdu',
+      'error'
+    );
+    view = 'dashboard';
+  }
+
+  document.querySelectorAll('.view').forEach(v => (v.style.display = 'none'));
   const target = document.getElementById('view-' + view);
   if (target) target.style.display = 'block';
 
@@ -132,7 +145,7 @@ function updateNavLinks(page) {
 }
 
 document.querySelectorAll('[data-nav]').forEach(link => {
-  link.addEventListener('click', async (e) => {
+  link.addEventListener('click', async e => {
     e.preventDefault();
     const target = link.dataset.nav;
 
@@ -154,7 +167,7 @@ document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
 });
 
 // ---------- 5. AUTH ----------
-document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+document.getElementById('loginForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
@@ -173,7 +186,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
   }
 });
 
-document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+document.getElementById('registerForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const name = document.getElementById('regName').value;
   const shop_name = document.getElementById('regShop').value;
@@ -265,6 +278,7 @@ async function initApp() {
 
   state.user = user;
 
+  // Profile argadhu — yoo hin jiraanne uumi
   let { data: profile } = await db
     .from('dh_profiles')
     .select('*')
@@ -286,20 +300,28 @@ async function initApp() {
 
   state.profile = profile;
 
-  // User role mirkaneessi (Feature 5)
+  // ---------- USER ROLE (Feature 5) ----------
+  // staff_email fayyadami — staff_id yeroo baay'ee NULL ta'uu danda'a
   const { data: staffRecord } = await db
     .from('dh_staff')
-    .select('role, status')
-    .eq('staff_id', user.id)
+    .select('id, role, status, owner_id, staff_id')
+    .eq('staff_email', user.email.toLowerCase())
     .eq('status', 'active')
     .maybeSingle();
 
-  if (staffRecord) {
-    state.userRole = staffRecord.role;
-  } else {
-    state.userRole = 'owner';
+  const isSelfOwner = !staffRecord || staffRecord.owner_id === user.id;
+  state.userRole = staffRecord && !isSelfOwner ? staffRecord.role : 'owner';
+
+  // Staff ta'e — staff_id link godhi (backfill)
+  if (staffRecord && !isSelfOwner && !staffRecord.staff_id) {
+    db.from('dh_staff')
+      .update({ staff_id: user.id })
+      .eq('id', staffRecord.id)
+      .then(() => console.log('[Staff] Linked staff_id'))
+      .catch(() => {});
   }
 
+  // Sidebar nav link show/hide
   const staffNavLink = document.getElementById('staffNavLink');
   if (staffNavLink) {
     if (state.userRole === 'owner' || state.userRole === 'manager') {
@@ -309,6 +331,7 @@ async function initApp() {
     }
   }
 
+  // User info sidebar
   const nameEl = document.getElementById('userName');
   const emailEl = document.getElementById('userEmail');
   const shopEl = document.getElementById('shopName');
@@ -317,14 +340,15 @@ async function initApp() {
   if (nameEl) nameEl.textContent = profile?.name || user.email;
   if (emailEl) emailEl.textContent = user.email;
   if (shopEl) shopEl.textContent = profile?.shop_name || '';
-  if (avatarEl) avatarEl.textContent = (profile?.name || user.email).charAt(0).toUpperCase();
+  if (avatarEl)
+    avatarEl.textContent = (profile?.name || user.email).charAt(0).toUpperCase();
 
   // Realtime subscription
   setupRealtimeSubscription(user.id);
 
   showPage('dashboard');
 
-  // Payment callback yeroo Chapa irraa deebi'u
+  // Payment callback (yeroo Chapa irraa deebi'u)
   setTimeout(() => handlePaymentCallback(), 500);
 }
 
@@ -345,7 +369,7 @@ function setupRealtimeSubscription(userId) {
         table: 'dh_orders',
         filter: `owner_id=eq.${userId}`
       },
-      async (payload) => {
+      async payload => {
         const order = payload.new;
 
         showToast(
@@ -370,7 +394,7 @@ function setupRealtimeSubscription(userId) {
         table: 'dh_orders',
         filter: `owner_id=eq.${userId}`
       },
-      async (payload) => {
+      async payload => {
         const order = payload.new;
 
         if (payload.old && payload.old.status !== order.status) {
@@ -389,7 +413,7 @@ function setupRealtimeSubscription(userId) {
         }
       }
     )
-    .subscribe((status) => {
+    .subscribe(status => {
       console.log('Realtime subscription status:', status);
     });
 }
@@ -471,16 +495,18 @@ function renderSalesChart(orders) {
     type: 'bar',
     data: {
       labels: Object.keys(salesByMonth),
-      datasets: [{
-        label: 'Sales (ETB)',
-        data: Object.values(salesByMonth),
-        backgroundColor: gradient,
-        borderColor: 'rgb(99, 102, 241)',
-        borderWidth: 0,
-        borderRadius: 8,
-        borderSkipped: false,
-        barPercentage: 0.6
-      }]
+      datasets: [
+        {
+          label: 'Sales (ETB)',
+          data: Object.values(salesByMonth),
+          backgroundColor: gradient,
+          borderColor: 'rgb(99, 102, 241)',
+          borderWidth: 0,
+          borderRadius: 8,
+          borderSkipped: false,
+          barPercentage: 0.6
+        }
+      ]
     },
     options: {
       responsive: true,
@@ -495,7 +521,7 @@ function renderSalesChart(orders) {
           cornerRadius: 8,
           displayColors: false,
           callbacks: {
-            label: function(context) {
+            label: function (context) {
               return `ETB ${Number(context.raw).toLocaleString()}`;
             }
           }
@@ -508,7 +534,7 @@ function renderSalesChart(orders) {
           ticks: {
             color: tickColor,
             font: { size: 11, weight: '600' },
-            callback: (value) => {
+            callback: value => {
               if (value >= 1000) return `ETB ${(value / 1000).toFixed(0)}k`;
               return `ETB ${value}`;
             }
@@ -560,19 +586,21 @@ function renderStatusChart(orders) {
     type: 'doughnut',
     data: {
       labels: Object.keys(statusCount).map(s => t(s)),
-      datasets: [{
-        data: Object.values(statusCount),
-        backgroundColor: [
-          '#f59e0b',
-          '#3b82f6',
-          '#8b5cf6',
-          '#10b981',
-          '#ef4444'
-        ],
-        borderWidth: 3,
-        borderColor: borderColor,
-        hoverOffset: 12
-      }]
+      datasets: [
+        {
+          data: Object.values(statusCount),
+          backgroundColor: [
+            '#f59e0b',
+            '#3b82f6',
+            '#8b5cf6',
+            '#10b981',
+            '#ef4444'
+          ],
+          borderWidth: 3,
+          borderColor: borderColor,
+          hoverOffset: 12
+        }
+      ]
     },
     options: {
       responsive: true,
@@ -596,7 +624,7 @@ function renderStatusChart(orders) {
           padding: 12,
           cornerRadius: 8,
           callbacks: {
-            label: function(context) {
+            label: function (context) {
               const total = context.dataset.data.reduce((a, b) => a + b, 0);
               const value = context.raw;
               const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
@@ -618,14 +646,18 @@ function renderRecentOrders(orders) {
     return;
   }
 
-  tbody.innerHTML = orders.map(o => `
+  tbody.innerHTML = orders
+    .map(
+      o => `
     <tr>
       <td><strong>${escapeHtml(o.customer_name)}</strong></td>
       <td>ETB ${Number(o.total).toLocaleString()}</td>
       <td><span class="badge badge-${getStatusClass(o.status)}">${t(o.status)}</span></td>
       <td>${new Date(o.created_at).toLocaleDateString()}</td>
     </tr>
-  `).join('');
+  `
+    )
+    .join('');
 }
 
 // ---------- 8. PRODUCTS ----------
@@ -638,7 +670,10 @@ async function loadProducts() {
     .eq('owner_id', state.user.id)
     .order('created_at', { ascending: false });
 
-  if (error) { console.error(error); return; }
+  if (error) {
+    console.error(error);
+    return;
+  }
   state.products = data || [];
   renderProducts();
 }
@@ -676,6 +711,7 @@ async function uploadProductImage(file) {
 
 function renderProducts() {
   const grid = document.getElementById('productsGrid');
+  if (!grid) return;
 
   if (state.products.length === 0) {
     grid.innerHTML = `
@@ -686,16 +722,18 @@ function renderProducts() {
     return;
   }
 
-  grid.innerHTML = state.products.map(p => {
-    const stockClass = p.stock < 5 ? 'danger' : p.stock < 20 ? 'warning' : 'success';
+  grid.innerHTML = state.products
+    .map(p => {
+      const stockClass =
+        p.stock < 5 ? 'danger' : p.stock < 20 ? 'warning' : 'success';
 
-    const imageHtml = p.image_url
-      ? `<img src="${p.image_url}" alt="${escapeHtml(p.name)}" 
+      const imageHtml = p.image_url
+        ? `<img src="${p.image_url}" alt="${escapeHtml(p.name)}" 
               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
          <div class="product-image-placeholder" style="display: none">📦</div>`
-      : `<div class="product-image-placeholder">📦</div>`;
+        : `<div class="product-image-placeholder">📦</div>`;
 
-    return `
+      return `
       <div class="product-card">
         ${imageHtml}
         <div class="product-header">
@@ -709,7 +747,8 @@ function renderProducts() {
           <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑️ ${t('delete')}</button>
         </div>
       </div>`;
-  }).join('');
+    })
+    .join('');
 }
 
 document.getElementById('addProductBtn')?.addEventListener('click', () => {
@@ -724,11 +763,11 @@ document.getElementById('cancelProductBtn')?.addEventListener('click', () => {
   document.getElementById('productModal').classList.remove('active');
 });
 
-document.getElementById('productModal')?.addEventListener('click', (e) => {
+document.getElementById('productModal')?.addEventListener('click', e => {
   if (e.target.id === 'productModal') e.target.classList.remove('active');
 });
 
-document.getElementById('pImage')?.addEventListener('change', (e) => {
+document.getElementById('pImage')?.addEventListener('change', e => {
   const file = e.target.files[0];
   const preview = document.getElementById('imagePreview');
   const previewImg = document.getElementById('imagePreviewImg');
@@ -753,14 +792,14 @@ document.getElementById('pImage')?.addEventListener('change', (e) => {
   }
 
   const reader = new FileReader();
-  reader.onload = (ev) => {
+  reader.onload = ev => {
     previewImg.src = ev.target.result;
     preview.style.display = 'block';
   };
   reader.readAsDataURL(file);
 });
 
-document.getElementById('productForm')?.addEventListener('submit', async (e) => {
+document.getElementById('productForm')?.addEventListener('submit', async e => {
   e.preventDefault();
 
   const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -785,11 +824,21 @@ document.getElementById('productForm')?.addEventListener('submit', async (e) => 
       payload.image_url = await uploadProductImage(imageFile);
     }
 
+    let dbError;
     if (state.editingProductId) {
-      await db.from('dh_products').update(payload).eq('id', state.editingProductId);
+      const { error } = await db
+        .from('dh_products')
+        .update(payload)
+        .eq('id', state.editingProductId);
+      dbError = error;
     } else {
-      await db.from('dh_products').insert(payload);
+      const { error } = await db.from('dh_products').insert(payload);
+      dbError = error;
     }
+
+    if (dbError) throw dbError;
+
+    showToast('✅', t('save') + ' ✓', 'success', 2000);
 
     document.getElementById('productModal').classList.remove('active');
     document.getElementById('productForm').reset();
@@ -849,7 +898,10 @@ async function loadOrders() {
     .eq('owner_id', state.user.id)
     .order('created_at', { ascending: false });
 
-  if (error) { console.error(error); return; }
+  if (error) {
+    console.error(error);
+    return;
+  }
   state.orders = data || [];
   renderOrders();
 }
@@ -863,14 +915,16 @@ function renderOrders() {
     return;
   }
 
-  tbody.innerHTML = state.orders.map(o => {
-    const items = (o.dh_order_items || [])
-      .map(i => `${escapeHtml(i.product_name)} ×${i.quantity}`)
-      .join(', ') || '—';
+  tbody.innerHTML = state.orders
+    .map(o => {
+      const items =
+        (o.dh_order_items || [])
+          .map(i => `${escapeHtml(i.product_name)} ×${i.quantity}`)
+          .join(', ') || '—';
 
-    const isPaid = o.payment_status === 'paid';
+      const isPaid = o.payment_status === 'paid';
 
-    return `
+      return `
       <tr>
         <td>
           <strong>${escapeHtml(o.customer_name)}</strong><br>
@@ -882,24 +936,29 @@ function renderOrders() {
         <td><small>${new Date(o.created_at).toLocaleDateString()}</small></td>
         <td>
           <select class="form-control" style="padding:6px 10px;font-size:13px" onchange="updateOrderStatus('${o.id}', this.value)">
-            ${['pending','processing','shipped','delivered','cancelled'].map(s =>
-              `<option value="${s}" ${s === o.status ? 'selected' : ''}>${t(s)}</option>`
-            ).join('')}
+            ${['pending', 'processing', 'shipped', 'delivered', 'cancelled']
+              .map(
+                s =>
+                  `<option value="${s}" ${s === o.status ? 'selected' : ''}>${t(s)}</option>`
+              )
+              .join('')}
           </select>
           <button class="btn btn-secondary btn-sm" style="margin-top:6px;width:100%" onclick="downloadInvoice('${o.id}')">
             📄 ${t('pdf')}
           </button>
-          ${isPaid
-            ? `<span class="badge badge-success" style="margin-top:6px;width:100%;display:inline-block;text-align:center;padding:8px 10px">
+          ${
+            isPaid
+              ? `<span class="badge badge-success" style="margin-top:6px;width:100%;display:inline-block;text-align:center;padding:8px 10px">
                 ✅ ${t('paid')}
               </span>`
-            : `<button class="btn btn-primary btn-sm" style="margin-top:6px;width:100%" onclick="openPaymentModal('${o.id}')">
+              : `<button class="btn btn-primary btn-sm" style="margin-top:6px;width:100%" onclick="openPaymentModal('${o.id}')">
                 💳 ${t('pay_now')}
               </button>`
           }
         </td>
       </tr>`;
-  }).join('');
+    })
+    .join('');
 }
 
 async function updateOrderStatus(id, status) {
@@ -918,13 +977,13 @@ document.getElementById('cancelOrderBtn')?.addEventListener('click', () => {
   document.getElementById('orderModal').classList.remove('active');
 });
 
-document.getElementById('orderModal')?.addEventListener('click', (e) => {
+document.getElementById('orderModal')?.addEventListener('click', e => {
   if (e.target.id === 'orderModal') e.target.classList.remove('active');
 });
 
 document.getElementById('addItemRowBtn')?.addEventListener('click', addOrderItemRow);
 
-document.getElementById('orderForm')?.addEventListener('submit', async (e) => {
+document.getElementById('orderForm')?.addEventListener('submit', async e => {
   e.preventDefault();
 
   const customerName = document.getElementById('oCustomerName').value.trim();
@@ -963,11 +1022,23 @@ document.getElementById('orderForm')?.addEventListener('submit', async (e) => {
     .select()
     .single();
 
-  if (orderErr) { alert(orderErr.message); return; }
+  if (orderErr) {
+    alert(orderErr.message);
+    return;
+  }
 
-  await db.from('dh_order_items').insert(
-    items.map(i => ({ ...i, order_id: orderData.id }))
-  );
+  const { error: itemsErr } = await db
+    .from('dh_order_items')
+    .insert(items.map(i => ({ ...i, order_id: orderData.id })));
+
+  if (itemsErr) {
+    // Rollback — order haqi
+    await db.from('dh_orders').delete().eq('id', orderData.id);
+    alert('Error: ' + itemsErr.message);
+    return;
+  }
+
+  showToast('✅', t('add_order') + ' ✓', 'success', 2000);
 
   document.getElementById('orderModal').classList.remove('active');
   await loadOrders();
@@ -977,7 +1048,8 @@ function addOrderItemRow() {
   const container = document.getElementById('orderItems');
   const row = document.createElement('div');
   row.className = 'order-item-row';
-  row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center';
+  row.style.cssText =
+    'display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center';
   row.innerHTML = `
     <input type="text" class="form-control item-name" placeholder="${t('products')}" required>
     <input type="number" class="form-control item-price" placeholder="${t('price')}" required min="0" step="0.01">
@@ -1018,7 +1090,9 @@ function generateInvoice(order) {
   doc.setTextColor(100);
   doc.setFont(undefined, 'normal');
   doc.text(`#${order.id.slice(0, 8).toUpperCase()}`, 196, 30, { align: 'right' });
-  doc.text(new Date(order.created_at).toLocaleDateString(), 196, 36, { align: 'right' });
+  doc.text(new Date(order.created_at).toLocaleDateString(), 196, 36, {
+    align: 'right'
+  });
 
   doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.5);
@@ -1094,7 +1168,9 @@ function generateInvoice(order) {
   doc.setFontSize(13);
   doc.setTextColor(99, 102, 241);
   doc.setFont(undefined, 'bold');
-  doc.text(`ETB ${Number(order.total).toLocaleString()}`, 191, finalY + 6, { align: 'right' });
+  doc.text(`ETB ${Number(order.total).toLocaleString()}`, 191, finalY + 6, {
+    align: 'right'
+  });
 
   doc.setFontSize(9);
   doc.setTextColor(150);
@@ -1187,7 +1263,11 @@ async function loadStaff() {
   if (!state.user) return;
 
   if (state.userRole !== 'owner' && state.userRole !== 'manager') {
-    showToast('Permission Denied', 'Staff page ilaaluuf hayyama hin qabdu', 'error');
+    showToast(
+      'Permission Denied',
+      'Staff page ilaaluuf hayyama hin qabdu',
+      'error'
+    );
     showView('dashboard');
     return;
   }
@@ -1221,11 +1301,12 @@ function renderStaff() {
     return;
   }
 
-  tbody.innerHTML = state.staff.map(s => {
-    const roleClass = `role-${s.role}`;
-    const statusClass = `status-${s.status || 'active'}`;
+  tbody.innerHTML = state.staff
+    .map(s => {
+      const roleClass = `role-${s.role}`;
+      const statusClass = `status-${s.status || 'active'}`;
 
-    return `
+      return `
       <tr>
         <td><strong>${escapeHtml(s.staff_email)}</strong></td>
         <td>
@@ -1249,12 +1330,17 @@ function renderStaff() {
           </div>
         </td>
       </tr>`;
-  }).join('');
+    })
+    .join('');
 }
 
 document.getElementById('addStaffBtn')?.addEventListener('click', () => {
   if (state.userRole !== 'owner') {
-    showToast('Permission Denied', 'Staff dabaluuf owner qofa hayyama qaba', 'error');
+    showToast(
+      'Permission Denied',
+      'Staff dabaluuf owner qofa hayyama qaba',
+      'error'
+    );
     return;
   }
 
@@ -1267,15 +1353,19 @@ document.getElementById('cancelStaffBtn')?.addEventListener('click', () => {
   document.getElementById('staffModal').classList.remove('active');
 });
 
-document.getElementById('staffModal')?.addEventListener('click', (e) => {
+document.getElementById('staffModal')?.addEventListener('click', e => {
   if (e.target.id === 'staffModal') e.target.classList.remove('active');
 });
 
-document.getElementById('staffForm')?.addEventListener('submit', async (e) => {
+document.getElementById('staffForm')?.addEventListener('submit', async e => {
   e.preventDefault();
 
   if (state.userRole !== 'owner') {
-    showToast('Permission Denied', 'Staff dabaluuf owner qofa hayyama qaba', 'error');
+    showToast(
+      'Permission Denied',
+      'Staff dabaluuf owner qofa hayyama qaba',
+      'error'
+    );
     return;
   }
 
@@ -1287,21 +1377,29 @@ document.getElementById('staffForm')?.addEventListener('submit', async (e) => {
     return;
   }
 
+  // Owner ofii isaa staff ta'uu hin danda'u
+  if (email === state.user.email.toLowerCase()) {
+    showToast(
+      'Error',
+      'Email kee ofii staff gochuu hin dandeessu',
+      'error'
+    );
+    return;
+  }
+
   const submitBtn = e.target.querySelector('button[type="submit"]');
   const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
   submitBtn.textContent = t('sending');
 
   try {
-    const { error: insertErr } = await db
-      .from('dh_staff')
-      .insert({
-        owner_id: state.user.id,
-        staff_id: state.user.id,
-        staff_email: email,
-        role: role,
-        status: 'active'
-      });
+    const { error: insertErr } = await db.from('dh_staff').insert({
+      owner_id: state.user.id,
+      staff_id: null, // ✅ NULL — staff seenu yeroo link ta'a
+      staff_email: email,
+      role: role,
+      status: 'active'
+    });
 
     if (insertErr) throw insertErr;
 
@@ -1315,7 +1413,6 @@ document.getElementById('staffForm')?.addEventListener('submit', async (e) => {
     document.getElementById('staffModal').classList.remove('active');
     document.getElementById('staffForm').reset();
     await loadStaff();
-
   } catch (err) {
     console.error(err);
     showToast('Error', err.message, 'error');
@@ -1327,7 +1424,11 @@ document.getElementById('staffForm')?.addEventListener('submit', async (e) => {
 
 async function updateStaffRole(staffId, newRole) {
   if (state.userRole !== 'owner') {
-    showToast('Permission Denied', 'Role jijjiiruuf owner qofa hayyama qaba', 'error');
+    showToast(
+      'Permission Denied',
+      'Role jijjiiruuf owner qofa hayyama qaba',
+      'error'
+    );
     await loadStaff();
     return;
   }
@@ -1358,7 +1459,11 @@ async function updateStaffRole(staffId, newRole) {
 
 async function deleteStaff(staffId) {
   if (state.userRole !== 'owner') {
-    showToast('Permission Denied', 'Staff haquuf owner qofa hayyama qaba', 'error');
+    showToast(
+      'Permission Denied',
+      'Staff haquuf owner qofa hayyama qaba',
+      'error'
+    );
     return;
   }
 
@@ -1403,7 +1508,7 @@ document.getElementById('cancelPaymentBtn')?.addEventListener('click', () => {
   document.getElementById('paymentModal').classList.remove('active');
 });
 
-document.getElementById('paymentModal')?.addEventListener('click', (e) => {
+document.getElementById('paymentModal')?.addEventListener('click', e => {
   if (e.target.id === 'paymentModal') {
     state.pendingPaymentOrderId = null;
     e.target.classList.remove('active');
@@ -1434,7 +1539,12 @@ async function payOrder(orderId) {
   }
 
   try {
-    showToast('💳 ' + t('payment_processing'), t('payment_processing'), 'info', 3000);
+    showToast(
+      '💳 ' + t('payment_processing'),
+      t('payment_processing'),
+      'info',
+      3000
+    );
 
     // Edge Function call — chapa-init
     const { data, error } = await db.functions.invoke('chapa-init', {
@@ -1442,23 +1552,29 @@ async function payOrder(orderId) {
         amount: Number(order.total),
         email: state.user.email,
         firstName: (state.profile?.name || 'Customer').split(' ')[0],
-        lastName: (state.profile?.name || 'User').split(' ').slice(1).join(' ') || 'User',
+        lastName:
+          (state.profile?.name || 'User').split(' ').slice(1).join(' ') || 'User',
         phone: order.customer_phone || '',
         orderId: order.id
       }
     });
 
     if (error) throw error;
-    if (!data || !data.checkout_url) throw new Error('Invalid response from payment server');
+    if (!data || !data.checkout_url)
+      throw new Error('Invalid response from payment server');
 
     localStorage.setItem('chapa_tx_ref', data.tx_ref);
     localStorage.setItem('chapa_order_id', order.id);
 
     window.location.href = data.checkout_url;
-
   } catch (err) {
     console.error('Payment error:', err);
-    showToast('Payment Error', err.message || 'Failed to initialize payment', 'error', 5000);
+    showToast(
+      'Payment Error',
+      err.message || 'Failed to initialize payment',
+      'error',
+      5000
+    );
   }
 }
 
@@ -1482,9 +1598,19 @@ async function handlePaymentCallback() {
         if (error) throw error;
 
         if (data && data.paid) {
-          showToast('✅ ' + t('payment_success'), 'Order paid successfully!', 'success', 5000);
+          showToast(
+            '✅ ' + t('payment_success'),
+            'Order paid successfully!',
+            'success',
+            5000
+          );
         } else {
-          showToast('⚠️ ' + t('payment_failed'), 'Payment not confirmed', 'warning', 5000);
+          showToast(
+            '⚠️ ' + t('payment_failed'),
+            'Payment not confirmed',
+            'warning',
+            5000
+          );
         }
 
         localStorage.removeItem('chapa_tx_ref');
@@ -1505,55 +1631,15 @@ async function handlePaymentCallback() {
   }
 }
 
-// ---------- 9.6 THEME TOGGLE (DARK MODE) ----------
-function initTheme() {
-  // Check localStorage
-  const savedTheme = localStorage.getItem('theme');
-
-  // Yoo saved theme jiraate → fayyadami
-  if (savedTheme) {
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    updateThemeIcon(savedTheme);
-  } else {
-    // Ykn — system preference check
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const theme = prefersDark ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', theme);
-    updateThemeIcon(theme);
-  }
-}
-
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme') || 'light';
-  const next = current === 'dark' ? 'light' : 'dark';
-
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('theme', next);
-  updateThemeIcon(next);
-
-  // Charts re-render — theme colors jijjiiruuf
-  if (state.user) {
-    if (state.currentPage === 'dashboard') {
+// ---------- 9.6 THEME CHANGE HOOK ----------
+// index.html keessaa toggle charts re-render akka godhu kana fayyadama
+window.__daldalaRerenderCharts = function () {
+  setTimeout(() => {
+    if (state.user && state.currentPage === 'dashboard') {
       loadDashboard();
     }
-  }
-}
-
-function updateThemeIcon(theme) {
-  const btn = document.getElementById('themeToggle');
-  if (!btn) return;
-
-  if (theme === 'dark') {
-    btn.textContent = '☀️'; // Sun — light mode'f
-    btn.title = 'Switch to light mode';
-  } else {
-    btn.textContent = '🌙'; // Moon — dark mode'f
-    btn.title = 'Switch to dark mode';
-  }
-}
-
-// Theme toggle listener
-document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+  }, 100);
+};
 
 // ---------- 10. HELPERS ----------
 function escapeHtml(text) {
@@ -1563,18 +1649,20 @@ function escapeHtml(text) {
 }
 
 function getStatusClass(status) {
-  return {
-    pending: 'warning',
-    processing: 'info',
-    shipped: 'purple',
-    delivered: 'success',
-    cancelled: 'danger'
-  }[status] || 'info';
+  return (
+    {
+      pending: 'warning',
+      processing: 'info',
+      shipped: 'purple',
+      delivered: 'success',
+      cancelled: 'danger'
+    }[status] || 'info'
+  );
 }
 
 // ---------- 11. BOOT ----------
 document.addEventListener('DOMContentLoaded', async () => {
-  initTheme();
+  // Theme init — index.html keessa inline script jira, kanaaf hin barbaachisu
   await loadTranslations(state.currentLang);
 
   db.auth.onAuthStateChange((event, session) => {

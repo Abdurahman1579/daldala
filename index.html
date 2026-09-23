@@ -57,8 +57,18 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
-    <!-- Theme Color -->
+    <!-- ============ PWA (Progressive Web App) ============ -->
+    <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#6366f1" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="DaldalaHub" />
+    <meta name="application-name" content="DaldalaHub" />
+    <!-- ============ END PWA ============ -->
 
     <!-- Language -->
     <meta http-equiv="content-language" content="en, am, om" />
@@ -70,6 +80,30 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+
+    <!-- ============ THEME INIT (FOUC fix — always set attribute) ============ -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("theme");
+          var theme;
+          if (saved === "dark" || saved === "light") {
+            theme = saved;
+          } else if (
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+          ) {
+            theme = "dark";
+          } else {
+            theme = "light";
+          }
+          // ALWAYS attribute galchi — 'light' ykn 'dark'
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
   </head>
   <body>
     <!-- ============ TOAST NOTIFICATIONS CONTAINER ============ -->
@@ -743,6 +777,89 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <!-- ============ Chart.js (FEATURE 3) ============ -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- ============ THEME TOGGLE + SERVICE WORKER ============ -->
+    <script>
+      // ---------- THEME TOGGLE (BULLETPROOF) ----------
+      (function () {
+        var btn = document.getElementById("themeToggle");
+        var root = document.documentElement;
+
+        if (!btn) {
+          console.warn("[Theme] Toggle button hin argamne");
+          return;
+        }
+
+        function syncIcon() {
+          var isDark = root.getAttribute("data-theme") === "dark";
+          btn.textContent = isDark ? "☀️" : "🌙";
+          btn.title = isDark ? "Switch to light mode" : "Switch to dark mode";
+        }
+
+        syncIcon();
+
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          var current = root.getAttribute("data-theme") || "light";
+          var next = current === "dark" ? "light" : "dark";
+
+          root.setAttribute("data-theme", next);
+          localStorage.setItem("theme", next);
+
+          syncIcon();
+          console.log("[Theme] Jijjiirame →", next);
+
+          if (typeof window.__daldalaRerenderCharts === "function") {
+            window.__daldalaRerenderCharts();
+          }
+        });
+      })();
+
+      // ---------- SERVICE WORKER (PWA) — FORCE UPDATE ----------
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js", { updateViaCache: "none" })
+            .then((reg) => {
+              console.log("[PWA] SW registered:", reg.scope);
+
+              // Update check — yeroo hunda
+              reg.update();
+
+              // Yoo SW haaraan jiru — forci activate
+              reg.addEventListener("updatefound", () => {
+                const newWorker = reg.installing;
+                if (!newWorker) return;
+
+                newWorker.addEventListener("statechange", () => {
+                  if (
+                    newWorker.state === "installed" &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    console.log("[PWA] New SW available — activating...");
+                    newWorker.postMessage({ type: "SKIP_WAITING" });
+                    setTimeout(() => window.location.reload(), 500);
+                  }
+                });
+              });
+            })
+            .catch((err) => {
+              console.warn("[PWA] SW registration failed:", err);
+            });
+
+          // Controller change — reload
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener("controllerchange", () => {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
+          });
+        });
+      }
+    </script>
+
     <script src="app.js"></script>
   </body>
 </html>
