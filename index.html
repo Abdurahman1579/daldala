@@ -97,7 +97,6 @@
           } else {
             theme = "light";
           }
-          // ALWAYS attribute galchi — 'light' ykn 'dark'
           document.documentElement.setAttribute("data-theme", theme);
         } catch (e) {
           document.documentElement.setAttribute("data-theme", "light");
@@ -108,6 +107,17 @@
   <body>
     <!-- ============ TOAST NOTIFICATIONS CONTAINER ============ -->
     <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ============ GLOBAL LANGUAGE DROPDOWN (Mobile top-right) ============ -->
+    <select
+      class="global-lang-dropdown"
+      id="globalLangDropdown"
+      aria-label="Language"
+    >
+      <option value="en">EN</option>
+      <option value="am">አማ</option>
+      <option value="om-ET">OM</option>
+    </select>
 
     <!-- ============ THEME TOGGLE ============ -->
     <button
@@ -824,11 +834,8 @@
             .register("/sw.js", { updateViaCache: "none" })
             .then((reg) => {
               console.log("[PWA] SW registered:", reg.scope);
-
-              // Update check — yeroo hunda
               reg.update();
 
-              // Yoo SW haaraan jiru — forci activate
               reg.addEventListener("updatefound", () => {
                 const newWorker = reg.installing;
                 if (!newWorker) return;
@@ -849,7 +856,6 @@
               console.warn("[PWA] SW registration failed:", err);
             });
 
-          // Controller change — reload
           let refreshing = false;
           navigator.serviceWorker.addEventListener("controllerchange", () => {
             if (refreshing) return;

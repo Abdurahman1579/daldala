@@ -80,13 +80,24 @@ function applyTranslations() {
 }
 
 function updateLangButtons() {
+  // Inline buttons (desktop)
   document.querySelectorAll('.lang-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lang === state.currentLang);
   });
+
+  // Global dropdown (mobile top-right) — sync
+  const dd = document.getElementById('globalLangDropdown');
+  if (dd) dd.value = state.currentLang;
 }
 
+// Inline language buttons listener
 document.querySelectorAll('.lang-btn').forEach(btn => {
   btn.addEventListener('click', () => loadTranslations(btn.dataset.lang));
+});
+
+// ✅ Global language dropdown listener (mobile)
+document.getElementById('globalLangDropdown')?.addEventListener('change', e => {
+  loadTranslations(e.target.value);
 });
 
 // ---------- 4. NAVIGATION (SPA) ----------
